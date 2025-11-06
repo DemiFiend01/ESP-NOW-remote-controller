@@ -38,9 +38,6 @@ void setup() {
   // Init Serial Monitor
   Serial.begin(115200);
 
-  //   delay(100);
-  // Wire.end();
-  //Wire.begin(8,9);
   Wire.begin(8,9);
   delay(50);
 
@@ -51,12 +48,12 @@ void setup() {
 
   Serial.println("Gamepad QT example!");
   Serial.println("seesaw started");
-  // uint32_t version = ((ss.getVersion() >> 16) & 0xFFFF);
-  // if (version != 5743) {
-  //   Serial.print("Wrong firmware loaded? ");
-  //   Serial.println(version);
-  //   while(1) delay(10);
-  // }
+  uint32_t version = ((ss.getVersion() >> 16) & 0xFFFF);
+  if (version != 5743) {
+    Serial.print("Wrong firmware loaded? ");
+    Serial.println(version);
+    while(1) delay(10);
+  }
   
   Serial.println("Found Product 5743");
   
