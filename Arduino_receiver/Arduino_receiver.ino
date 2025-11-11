@@ -50,7 +50,7 @@ void readFile(fs::FS &fs, const char * path){
       pmkKey = line.substring(4);
     } else if(line.startsWith("LMK:"){
       lmkKey = line.substring(4);
-    }else if (line.startsWith("RX_MAC:")) {
+    }else if (line.startsWith("M_MAC:")) {
       mac = line.substring(7);
     }
   
