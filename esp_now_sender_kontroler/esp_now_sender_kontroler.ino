@@ -2,6 +2,12 @@
 #include "Adafruit_seesaw.h"
 #include <esp_now.h>
 #include <WiFi.h>
+
+#include <LittleFS.h>
+#include "FS.h"
+
+#define FORMAT_LITTLEFS_IF_FAILED true
+
 Adafruit_seesaw ss;
 
 //I2C controller button mask
@@ -14,8 +20,8 @@ Adafruit_seesaw ss;
 uint32_t button_mask = (1UL << BUTTON_X) | (1UL << BUTTON_Y) | (1UL << BUTTON_START) |
                        (1UL << BUTTON_A) | (1UL << BUTTON_B) | (1UL << BUTTON_SELECT);
 
-// REPLACE WITH YOUR RECEIVER MAC Address
-uint8_t broadcastAddress[] = {0xDC, 0x06, 0x75, 0xF7, 0xE8, 0x58};
+// rx MAC
+uint8_t broadcastAddress[6];
 
 // enum value containing the operation state of the platform
 enum manager_state {
@@ -41,8 +47,8 @@ esp_now_peer_info_t peerInfo;
 
 // encryption codes
 // It can be made of numbers and letters and the keys are 16 bytes
-static const char* PMK_KEY_STR = "Q2ttd2lnSXljd3MK"; //sender's
-static const char* LMK_KEY_STR = "H3gtc5foVYurc9AN"; //local relationship between rx and tx
+static const char* PMK_KEY_STR = ""; //sender's
+static const char* LMK_KEY_STR = ""; //local relationship between rx and tx
 
 
 // callback when data is sent
@@ -124,6 +130,51 @@ void constructMessage(struct_message& new_message)
 
 }
 
+void readFile(fs::FS &fs, const char * path){
+  Serial.printf("Reading file: %s\r\n", path);
+
+  String pmkKey, lmkKey, mac;
+  File file = fs.open(path);
+  if(!file || file.isDirectory()){
+      Serial.println("- failed to open file for reading");
+      return;
+  }
+
+  while(file.available()){
+    Serial.write(file.read());
+
+    String line = file.readStringUntil('\n');
+    line.trim();
+
+    if (line.startsWith("PMK:")) {
+      pmkKey = line.substring(4);
+    } else if(line.startsWith("LMK:"){
+      lmkKey = line.substring(4);
+    }else if (line.startsWith("RX_MAC:")) {
+      mac = line.substring(7);
+    }
+  
+  }
+  file.close();
+  Serial.println("Keys loaded:");
+  Serial.println("PMK: " + pmkKey);
+  Serial.println("LMK: " + lmkKey);
+  Serial.println("Mac: " + mac);
+
+  //setting the mac address
+  int values[6];
+  if (sscanf(macString.c_str(), "%x:%x:%x:%x:%x:%x",
+             &values[0], &values[1], &values[2],
+             &values[3], &values[4], &values[5]) == 6) {
+    for (int i = 0; i < 6; ++i) broadcastAddress[i] = (uint8_t) values[i]; //assigning the MAC address of the rx
+  } else {
+    Serial.println("Invalid MAC format!");
+    return;
+  }
+
+  PMK_KEY_STR = pmkKey;
+  LMK_KEY_STR = lmkKey;
+}
 
 void setup() {
   // Init Serial Monitor
@@ -153,6 +204,9 @@ void setup() {
   //set up the mask for the i2c minicontroller
   ss.pinModeBulk(button_mask, INPUT_PULLUP);
   ss.setGPIOInterrupts(button_mask, 1);
+
+  //read the keys and MAC
+  readFile(LittleFS,"/keys.txt");
 
   // Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
