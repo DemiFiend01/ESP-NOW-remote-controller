@@ -1,11 +1,19 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
-// Structure example to receive data
+// enum value containing the operation state of the platform
+enum manager_state {
+  STANDBY = 0,
+  MOVING = 1, 
+  SCANNING = 2,
+  UPLOADING = 3 //data to the PC
+}
+
 // Must match the sender structure
 typedef struct struct_message {
   int x, y;
   bool start, select, x_button, y_button, b_button, a_button;
+  op_mode state;
 } struct_message;
 
 struct_message rx_message;
@@ -31,6 +39,8 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
   Serial.printle rx_message.a_button);
   Serial.print("B button: ");
   Serial.printle rx_message.b_button);
+  Serial.print("State: ");
+  Serial.printle rx_message.state);
 }
  
 void setup() {
