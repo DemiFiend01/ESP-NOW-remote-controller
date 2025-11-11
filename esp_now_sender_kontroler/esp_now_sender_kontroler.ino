@@ -39,6 +39,12 @@ struct_message myData;
 //for esp-now
 esp_now_peer_info_t peerInfo;
 
+// encryption codes
+// It can be made of numbers and letters and the keys are 16 bytes
+static const char* PMK_KEY_STR = "Q2ttd2lnSXljd3MK"; //sender's
+static const char* LMK_KEY_STR = "H3gtc5foVYurc9AN"; //local relationship between rx and tx
+
+
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
@@ -164,7 +170,15 @@ void setup() {
   // Register peer
   memcpy(peerInfo.peer_addr, broadcastAddress, 6);
   peerInfo.channel = 0;  
-  peerInfo.encrypt = false;
+
+  //encryption
+  //setting the PMK key of the sender
+  esp_now_set_pmk((uint8_t *)PMK_KEY_STR);
+  //setting the LMK key of the internal local relationship between rx and tx
+  for (uint8_t i = 0; i < 16; i++) {
+    peerInfo.lmk[i] = LMK_KEY_STR[i];
+  }
+  peerInfo.encrypt = true;
   
   // Add peer        
   if (esp_now_add_peer(&peerInfo) != ESP_OK){

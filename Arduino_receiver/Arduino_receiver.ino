@@ -17,6 +17,13 @@ typedef struct struct_message {
 } struct_message;
 
 struct_message rx_message;
+//for encryption purposes
+uint8_t masterMacAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+// encryption codes
+// It can be made of numbers and letters and the keys are 16 bytes
+static const char* PMK_KEY_STR = "Q2ttd2lnSXljd3MK"; //sender's
+static const char* LMK_KEY_STR = "H3gtc5foVYurc9AN"; //local relationship between rx and tx
 
 // callback function that will be executed when data is received
 // modify this however you need
@@ -56,6 +63,25 @@ void setup() {
     return;
   }
   
+  // set the PMK key for encryption
+  esp_now_set_pmk((uint8_t *)PMK_KEY_STR);
+
+  // Register the master as peer
+  esp_now_peer_info_t peerInfo;
+  memcpy(peerInfo.peer_addr, masterMacAddress, 6);
+  peerInfo.channel = 0;
+  // Setting the master device LMK key aka the local key of the relationship
+  for (uint8_t i = 0; i < 16; i++) {
+    peerInfo.lmk[i] = LMK_KEY_STR[i];
+  }
+  peerInfo.encrypt = true;
+  
+  // Add master as peer       
+  if (esp_now_add_peer(&peerInfo) != ESP_OK){
+    Serial.println("Failed to add peer");
+    return;
+  }
+
   // registering the callback function to OnDataRecv
   esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 
