@@ -1,3 +1,7 @@
+#include <FS.h>
+#include <FSImpl.h>
+#include <vfs_api.h>
+
 #include <Wire.h>
 #include "Adafruit_seesaw.h"
 #include <esp_now.h>
@@ -133,7 +137,11 @@ void constructMessage(struct_message& new_message)
 void readFile(fs::FS &fs, const char * path){
   Serial.printf("Reading file: %s\r\n", path);
 
-  String pmkKey, lmkKey, mac;
+  
+  char line[64];
+  char pmkKey[17] = {0};
+  char lmkKey[17] = {0};
+  char mac[32] = {0};
   File file = fs.open(path);
   if(!file || file.isDirectory()){
       Serial.println("- failed to open file for reading");
@@ -141,29 +149,33 @@ void readFile(fs::FS &fs, const char * path){
   }
 
   while(file.available()){
-    Serial.write(file.read());
+    //Serial.write(file.read());
 
-    String line = file.readStringUntil('\n');
-    line.trim();
+    int len = file.readBytesUntil('\n', line, sizeof(line) - 1);
+    line[len] = '\0';
 
-    if (line.startsWith("PMK:")) {
-      pmkKey = line.substring(4);
-    } else if(line.startsWith("LMK:")){
-      lmkKey = line.substring(4);
-    }else if (line.startsWith("RX_MAC:")) {
-      mac = line.substring(7);
+    if (strncmp(line, "PMK:", 4) == 0) {
+      strncpy(pmkKey, line + 4, 16);
+    } else if (strncmp(line, "LMK:", 4) == 0) {
+      strncpy(lmkKey, line + 4, 16);
+    } else if (strncmp(line, "RX_MAC:", 7) == 0) {
+      strncpy(mac, line + 7, sizeof(mac) - 1);
     }
-  
   }
+  
+  
   file.close();
   Serial.println("Keys loaded:");
-  Serial.println("PMK: " + pmkKey);
-  Serial.println("LMK: " + lmkKey);
-  Serial.println("Mac: " + mac);
+  Serial.print("PMK: ");
+  Serial.println(pmkKey);
+  Serial.print("LMK: ");
+  Serial.println(lmkKey);
+  Serial.print("Mac: ");
+  Serial.println(mac);
 
   //setting the mac address
   int values[6];
-  if (sscanf(mac.c_str(), "%x:%x:%x:%x:%x:%x",
+  if (sscanf(mac, "%x:%x:%x:%x:%x:%x",
              &values[0], &values[1], &values[2],
              &values[3], &values[4], &values[5]) == 6) {
     for (int i = 0; i < 6; ++i) broadcastAddress[i] = (uint8_t) values[i]; //assigning the MAC address of the rx
@@ -172,8 +184,23 @@ void readFile(fs::FS &fs, const char * path){
     return;
   }
 
-  pmkKey.toCharArray(PMK_KEY_STRING, sizeof(PMK_KEY_STRING));
-  lmkKey.toCharArray(LMK_KEY_STRING, sizeof(LMK_KEY_STRING));
+  strncpy(PMK_KEY_STR, pmkKey, sizeof(PMK_KEY_STR));
+  strncpy(LMK_KEY_STR, lmkKey, sizeof(LMK_KEY_STR));
+
+  Serial.print("PMK_KEY_STR bytes: ");
+  for(int i=0;i<16;i++){
+      Serial.print((uint8_t)PMK_KEY_STR[i], HEX);
+      Serial.print(" ");
+  }
+  Serial.println();
+
+  Serial.print("LMK_KEY_STR bytes: ");
+  for(int i=0;i<16;i++){
+      Serial.print((uint8_t)LMK_KEY_STR[i], HEX);
+      Serial.print(" ");
+  }
+  Serial.println();
+
   // PMK_KEY_STR = pmkKey;
   // LMK_KEY_STR = lmkKey;
 }
@@ -181,6 +208,7 @@ void readFile(fs::FS &fs, const char * path){
 void setup() {
   // Init Serial Monitor
   Serial.begin(115200);
+  while (!Serial) { delay(10); Serial.println("e"); }
 
   Wire.begin(8,9);
   delay(50);
@@ -207,6 +235,10 @@ void setup() {
   ss.pinModeBulk(button_mask, INPUT_PULLUP);
   ss.setGPIOInterrupts(button_mask, 1);
 
+  if (!LittleFS.begin(true)) { // true = format if mount fails
+    Serial.println("LittleFS mount failed!");
+    return;
+  }
   //read the keys and MAC
   readFile(LittleFS,"/keys.txt");
 
@@ -223,9 +255,10 @@ void setup() {
   // get the status of Trasnmitted packet
   esp_now_register_send_cb(esp_now_send_cb_t(OnDataSent));
   
+  memcpy(broadcastAddress, (uint8_t[]){0xB4, 0x90, 0xA6, 0x86, 0x57, 0x25}, 6);
   // Register peer
   memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  peerInfo.channel = 0;  
+  peerInfo.channel = 1;  
 
   //encryption
   //setting the PMK key of the sender
@@ -234,29 +267,29 @@ void setup() {
   for (uint8_t i = 0; i < 16; i++) {
     peerInfo.lmk[i] = LMK_KEY_STR[i];
   }
-  peerInfo.encrypt = true;
+  peerInfo.encrypt = false; //change to true later, encrypting just doesnt work for now :C
   
+  esp_now_del_peer(broadcastAddress);
   // Add peer        
   if (esp_now_add_peer(&peerInfo) != ESP_OK){
     Serial.println("Failed to add peer");
     return;
   }
-
+  
 }
 
 
 void loop() {
   
-  constructMessage((uint8_t *) &myData);
+  constructMessage(myData);
 
   // Send message via ESP-NOW
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
    
-  if (result == ESP_OK) {
-    Serial.println("Sent with success");
+  if(result == ESP_NOW_SEND_SUCCESS){
+    Serial.println("yay");
+  }else{
+    Serial.println("Failed to send");
   }
-  else {
-    Serial.println("Error sending the data");
-  }
-  delay(10);
+  delay(10000);
 }
