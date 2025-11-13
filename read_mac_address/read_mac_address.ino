@@ -9,7 +9,7 @@
 
 //this function can ONLY be called before the interface is enabled.
 //The bit 0 of the first byte of MAC address can not be 1.
-void setMacAddress(uint8_t mac[8])
+void setMacAddress(uint8_t mac[6])
 {
   esp_err_t ret = esp_wifi_set_mac(WIFI_IF_STA, mac); //station interface
 
@@ -24,9 +24,9 @@ void setMacAddress(uint8_t mac[8])
   }else if (ret == ESP_ERR_WIFI_IF){
     Serial.println("Invalid interface. Is not STATION.");
   }else if(ret == ESP_ERR_WIFI_MAC){
-    Serial.println("Invalid mac address. Remember that the bit 0 of the first byte of MAC address can not be 1.")
+    Serial.println("Invalid mac address. Remember that the bit 0 of the first byte of MAC address can not be 1.");
   }else if(ret == ESP_ERR_WIFI_MODE){
-    Serial.println("WiFi mode is wrong.")
+    Serial.println("WiFi mode is wrong.");
   }
 
 }
@@ -52,14 +52,20 @@ void readMacAddress(){
 
 void setup(){
   Serial.begin(115200);
+  while (!Serial) { delay(10); } //for arduino nano esp32 because there's a delay
+
   Serial.println("Reading the MAC address:");
 
   WiFi.mode(WIFI_STA); //Station mode (client)
-  //const uint8_t newMac[6] = {0x1a, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
-  //setMacAddress();
+
+  //uncomment to set a new mac address
+
+  // uint8_t newMac[6] = {0xB4, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  // setMacAddress(newMac);
+
   WiFi.STA.begin(); //start the wi-fi
 
-  Serial.print("[DEFAULT] ESP32 Board MAC Address: ");
+  Serial.print("ESP32 Board MAC Address: ");
   readMacAddress();
 }
  

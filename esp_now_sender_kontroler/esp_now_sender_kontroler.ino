@@ -29,14 +29,14 @@ enum manager_state {
   MOVING = 1, 
   SCANNING = 2,
   UPLOADING = 3 //data to the PC
-}
+};
 
 // Structure example to send data
 // Must match the receiver structure
 typedef struct struct_message {
   int x, y;
   bool start, select, x_button, y_button, b_button, a_button;
-  op_mode state;
+  manager_state state;
 } struct_message;
 
 // Create a struct_message called myData
@@ -47,8 +47,8 @@ esp_now_peer_info_t peerInfo;
 
 // encryption codes
 // It can be made of numbers and letters and the keys are 16 bytes
-static const char* PMK_KEY_STR = ""; //sender's
-static const char* LMK_KEY_STR = ""; //local relationship between rx and tx
+static char PMK_KEY_STR[17]; //sender's
+static char LMK_KEY_STR[17]; //local relationship between rx and tx
 
 
 // callback when data is sent
@@ -59,7 +59,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 
 //for the controller managment
 static int last_x = 0, last_y = 0;
-static op_mode last_op_mode = STANDBY;
+static manager_state last_op_mode = STANDBY;
 
 //creates a message to send from reading the input and previous information
 void constructMessage(struct_message& new_message)
@@ -148,7 +148,7 @@ void readFile(fs::FS &fs, const char * path){
 
     if (line.startsWith("PMK:")) {
       pmkKey = line.substring(4);
-    } else if(line.startsWith("LMK:"){
+    } else if(line.startsWith("LMK:")){
       lmkKey = line.substring(4);
     }else if (line.startsWith("RX_MAC:")) {
       mac = line.substring(7);
@@ -163,7 +163,7 @@ void readFile(fs::FS &fs, const char * path){
 
   //setting the mac address
   int values[6];
-  if (sscanf(macString.c_str(), "%x:%x:%x:%x:%x:%x",
+  if (sscanf(mac.c_str(), "%x:%x:%x:%x:%x:%x",
              &values[0], &values[1], &values[2],
              &values[3], &values[4], &values[5]) == 6) {
     for (int i = 0; i < 6; ++i) broadcastAddress[i] = (uint8_t) values[i]; //assigning the MAC address of the rx
@@ -172,8 +172,10 @@ void readFile(fs::FS &fs, const char * path){
     return;
   }
 
-  PMK_KEY_STR = pmkKey;
-  LMK_KEY_STR = lmkKey;
+  pmkKey.toCharArray(PMK_KEY_STRING, sizeof(PMK_KEY_STRING));
+  lmkKey.toCharArray(LMK_KEY_STRING, sizeof(LMK_KEY_STRING));
+  // PMK_KEY_STR = pmkKey;
+  // LMK_KEY_STR = lmkKey;
 }
 
 void setup() {
