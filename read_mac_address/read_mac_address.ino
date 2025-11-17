@@ -37,7 +37,7 @@ void readMacAddress(){
   esp_err_t ret = esp_wifi_get_mac(WIFI_IF_STA, baseMac); //providing an interface, it will fill the baseMac address and return the status of the action
 
   if (ret == ESP_OK) { //succeeded
-    Serial.printf("%02x:%02x:%02x:%02x:%02x:%02x\n",
+    Serial.printf("STA: %02x:%02x:%02x:%02x:%02x:%02x\n",
                   baseMac[0], baseMac[1], baseMac[2],
                   baseMac[3], baseMac[4], baseMac[5]); //printing the MAC address to be copied into the sender's code
   } else if (ret == ESP_ERR_WIFI_NOT_INIT){
@@ -48,10 +48,39 @@ void readMacAddress(){
     Serial.println("Invalid interface. Is not STATION.");
   }
 
+  ret = esp_wifi_get_mac(WIFI_IF_AP, baseMac); //providing an interface, it will fill the baseMac address and return the status of the action
+
+  if (ret == ESP_OK) { //succeeded
+    Serial.printf("AP: %02x:%02x:%02x:%02x:%02x:%02x\n",
+                  baseMac[0], baseMac[1], baseMac[2],
+                  baseMac[3], baseMac[4], baseMac[5]); //printing the MAC address to be copied into the sender's code
+  } else if (ret == ESP_ERR_WIFI_NOT_INIT){
+    Serial.println("WiFi is not initialized by esp_wifi_init.");
+  } else if (ret == ESP_ERR_INVALID_ARG){
+    Serial.println("Invalid argument.");
+  }else if (ret == ESP_ERR_WIFI_IF){
+    Serial.println("Invalid interface. Is not AP.");
+  }
+
+  ret = esp_wifi_get_mac(WIFI_IF_NAN, baseMac); //providing an interface, it will fill the baseMac address and return the status of the action
+
+  if (ret == ESP_OK) { //succeeded
+    Serial.printf("NAN: %02x:%02x:%02x:%02x:%02x:%02x\n",
+                  baseMac[0], baseMac[1], baseMac[2],
+                  baseMac[3], baseMac[4], baseMac[5]); //printing the MAC address to be copied into the sender's code
+  } else if (ret == ESP_ERR_WIFI_NOT_INIT){
+    Serial.println("WiFi is not initialized by esp_wifi_init.");
+  } else if (ret == ESP_ERR_INVALID_ARG){
+    Serial.println("Invalid argument.");
+  }else if (ret == ESP_ERR_WIFI_IF){
+    Serial.println("Invalid interface. Is not NAN.");
+  }
+
 }
 
 void setup(){
   Serial.begin(115200);
+  Serial.println("Hello:");
   while (!Serial) { delay(10); } //for arduino nano esp32 because there's a delay
 
   Serial.println("Reading the MAC address:");
@@ -60,8 +89,8 @@ void setup(){
 
   //uncomment to set a new mac address
 
-  // uint8_t newMac[6] = {0xB4, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-  // setMacAddress(newMac);
+  uint8_t newMac[6] = {0x4A, 0x7C, 0x52, 0xF0, 0x9D, 0x26};
+  setMacAddress(newMac);
 
   WiFi.STA.begin(); //start the wi-fi
 

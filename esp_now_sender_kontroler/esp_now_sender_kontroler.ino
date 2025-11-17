@@ -255,10 +255,12 @@ void setup() {
   // get the status of Trasnmitted packet
   esp_now_register_send_cb(esp_now_send_cb_t(OnDataSent));
   
-  memcpy(broadcastAddress, (uint8_t[]){0xB4, 0x90, 0xA6, 0x86, 0x57, 0x25}, 6);
+  memset(&peerInfo, 0, sizeof(peerInfo)); //ZEROING
+  //memcpy(broadcastAddress, (uint8_t[]){0xB4, 0x90, 0xA6, 0x86, 0x57, 0x25}, 6);
   // Register peer
   memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-  peerInfo.channel = 1;  
+  peerInfo.ifidx = WIFI_IF_STA;
+  peerInfo.channel = 0;  
 
   //encryption
   //setting the PMK key of the sender
@@ -275,8 +277,13 @@ void setup() {
     Serial.println("Failed to add peer");
     return;
   }
+  Serial.print("PEER SET: ");
+  for (int i = 0; i < 6; i++) Serial.printf("%02X ", peerInfo.peer_addr[i]);
+  Serial.println();
   
+  delay(100);
 }
+  
 
 
 void loop() {
@@ -291,5 +298,5 @@ void loop() {
   }else{
     Serial.println("Failed to send");
   }
-  delay(10000);
+  delay(1000);
 }

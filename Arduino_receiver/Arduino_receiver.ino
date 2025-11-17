@@ -172,8 +172,9 @@ void setup() {
 
   // Register the master as peer
   esp_now_peer_info_t peerInfo;
+  memset(&peerInfo, 0, sizeof(peerInfo)); //ZEROING
   memcpy(peerInfo.peer_addr, masterMacAddress, 6);
-  peerInfo.channel = 1;
+  peerInfo.channel = 0;
   // Setting the master device LMK key aka the local key of the relationship
   for (uint8_t i = 0; i < 16; i++) {
     peerInfo.lmk[i] = LMK_KEY_STR[i];
