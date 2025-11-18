@@ -17,20 +17,87 @@ uint32_t button_mask = (1UL << BUTTON_X) | (1UL << BUTTON_Y) | (1UL << BUTTON_ST
 uint8_t receiverAddress[] = {0xB8, 0xF8, 0x62, 0x2D, 0x58, 0x30};
 
 esp_now_peer_info_t peerInfo;
+enum manager_state{
+  STANDBY = 0,
+  MOVING = 1,
+  SCANNING = 2,
+  UPLOADING = 3
+};
 
-typedef struct message{
+struct message{
   int x,y;
+  bool start, select, x_b, y_b, b_b, a_b;
+  manager_state state;
 };
 
 message tx_message;
+int last_x = 0, last_y =0;
+manager_state last_man_state = STANDBY;
 
 void constructMessage(message& new_message)
 {
   int x = 1023 - ss.analogRead(14);
   int y = 1023 - ss.analogRead(14);
-  Serial.print(x); Serial.print(", "); Serial.println(y);
-  new_message.x = x;
-  new_message.y = y;
+  //Serial.print(x); Serial.print(", "); Serial.println(y);
+  new_message.a_b = false;
+  new_message.b_b = false;
+  new_message.x_b = false;
+  new_message.y_b = false;
+  new_message.state = last_man_state;
+  
+
+  if(new_message.state!= SCANNING)
+  {
+    if((abs(x-last_x)>3) || (abs(y-last_y)>3)){
+      Serial.print("X: "); Serial.print(x); Serial.print(", Y: "); Serial.println(y);
+      last_x = x; last_y = y;
+      new_message.x = x; new_message.y = y;
+      new_message.state = MOVING;
+    }
+  }
+
+  uint32_t buttons = ss.digitalReadBulk(button_mask);
+
+  if(!(buttons & (1UL << BUTTON_A))){
+    Serial.println("Button A pressed");
+    new_message.a_b = true;
+    new_message.state = SCANNING;
+  }
+  if(!(buttons & (1UL << BUTTON_B))){
+    Serial.println("Button B pressed");
+    new_message.b_b = true;
+    if(new_message.state != SCANNING)
+    {
+      new_message.state = UPLOADING;
+    }
+  }
+  if(!(buttons & (1UL << BUTTON_Y)))
+  {
+    Serial.println("Button Y pressed");
+    new_message.y_b = true;
+    if(new_message.state == SCANNING || new_message.state == UPLOADING)
+    {
+      new_message.state = STANDBY;
+    }
+  }
+
+  if(!(buttons & (1UL << BUTTON_X)))
+  {
+    Serial.println("Button X pressed");
+    new_message.x_b = true;
+  }
+  if(!(buttons & (1UL << BUTTON_SELECT)))
+  {
+    Serial.println("Select pressed");
+    new_message.select = true;
+  }
+  if(!(buttons & (1UL << BUTTON_START)))
+  {
+    Serial.println("Start pressed");
+    new_message.start = true;
+  }
+
+  last_man_state = new_message.state;
 }
 
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status){
@@ -98,5 +165,5 @@ void loop() {
     Serial.println("Error sending the data");
   }
 
-  delay(100);
+  delay(500);
 }
