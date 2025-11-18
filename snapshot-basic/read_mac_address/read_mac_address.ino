@@ -24,9 +24,9 @@ void setMacAddress(uint8_t mac[8])
   }else if (ret == ESP_ERR_WIFI_IF){
     Serial.println("Invalid interface. Is not STATION.");
   }else if(ret == ESP_ERR_WIFI_MAC){
-    Serial.println("Invalid mac address. Remember that the bit 0 of the first byte of MAC address can not be 1.")
+    Serial.println("Invalid mac address. Remember that the bit 0 of the first byte of MAC address can not be 1.");
   }else if(ret == ESP_ERR_WIFI_MODE){
-    Serial.println("WiFi mode is wrong.")
+    Serial.println("WiFi mode is wrong.");
   }
 
 }
