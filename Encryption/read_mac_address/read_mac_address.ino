@@ -89,8 +89,8 @@ void setup(){
 
   //uncomment to set a new mac address
 
-  uint8_t newMac[6] = {0x4A, 0x7C, 0x52, 0xF0, 0x9D, 0x26};
-  setMacAddress(newMac);
+  // uint8_t newMac[6] = {0x4A, 0x7C, 0x52, 0xF0, 0x9D, 0x26};
+  // setMacAddress(newMac);
 
   WiFi.STA.begin(); //start the wi-fi
 
