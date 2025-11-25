@@ -22,7 +22,8 @@ enum manager_state{
   STANDBY = 0,
   MOVING = 1,
   SCANNING = 2,
-  UPLOADING = 3
+  UPLOADING = 3,
+  STATUS_UPDATE = 4
 };
 
 struct message{
@@ -32,6 +33,14 @@ struct message{
 };
 
 message tx_message;
+
+struct platforma_message{
+  bool is_scanning;
+  String status_text;;
+};
+
+platforma_message rx_message;
+
 int last_x = 0, last_y =0;
 manager_state last_man_state = STANDBY;
 
@@ -92,6 +101,10 @@ void constructMessage(message& new_message)
   }
   if(!(buttons & (1UL << BUTTON_SELECT)))
   { 
+    if(new_message.state!= SCANNING || new_message.state!= UPLOADING || last_man_state != STATUS_UPDATE)
+    {
+      new_message.state = STATUS_UPDATE;
+    }
     new_message.select = true;
   }
   if(!(buttons & (1UL << BUTTON_START)))
@@ -131,6 +144,11 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status){
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Failure");
 }
 
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len){
+  memcpy(&rx_message, incomingData,len);
+  last_man_state = STANDBY;
+  Serial.println(rx_message.status_text);
+}
 
 void setup() {
   // put your setup code here, to run once:
@@ -164,6 +182,8 @@ void setup() {
   }
 
   esp_now_register_send_cb(esp_now_send_cb_t(OnDataSent));
+
+  esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
 
   memcpy(peerInfo.peer_addr, receiverAddress,6);
   peerInfo.channel = 0;
